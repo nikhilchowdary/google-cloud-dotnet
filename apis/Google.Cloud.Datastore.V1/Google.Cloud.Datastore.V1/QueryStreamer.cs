@@ -34,6 +34,7 @@ namespace Google.Cloud.Datastore.V1
         {
             _initialRequest = GaxPreconditions.CheckNotNull(initialRequest, nameof(initialRequest)).Clone();
             _apiCall = GaxPreconditions.CheckNotNull(apiCall, nameof(apiCall));
+            DatastoreClientImpl.ApplyTransactionHeader(ref callSettings, DatastoreClientImpl.IsTransactionalRead(_initialRequest.ReadOptions));
             _callSettings = callSettings;
         }
 

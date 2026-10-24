@@ -31,7 +31,46 @@ namespace Google.Cloud.Datastore.V1
 
     public partial class DatastoreClientImpl
     {
+        internal const string TransactionHeader = "x-goog-is-transaction";
+
         internal override ApiCall<RunQueryRequest, RunQueryResponse> RunQueryApiCall => _callRunQuery;
+
+        partial void Modify_LookupRequest(ref LookupRequest request, ref CallSettings settings) =>
+            ApplyTransactionHeader(ref settings, IsTransactionalRead(request.ReadOptions));
+
+        partial void Modify_RunQueryRequest(ref RunQueryRequest request, ref CallSettings settings) =>
+            ApplyTransactionHeader(ref settings, IsTransactionalRead(request.ReadOptions));
+
+        partial void Modify_RunAggregationQueryRequest(ref RunAggregationQueryRequest request, ref CallSettings settings) =>
+            ApplyTransactionHeader(ref settings, IsTransactionalRead(request.ReadOptions));
+
+        partial void Modify_BeginTransactionRequest(ref BeginTransactionRequest request, ref CallSettings settings) =>
+            ApplyTransactionHeader(ref settings, true);
+
+        partial void Modify_CommitRequest(ref CommitRequest request, ref CallSettings settings) =>
+            ApplyTransactionHeader(
+                ref settings,
+                request.Mode == CommitRequest.Types.Mode.Transactional ||
+                !request.Transaction.IsEmpty ||
+                request.SingleUseTransaction is not null);
+
+        partial void Modify_RollbackRequest(ref RollbackRequest request, ref CallSettings settings) =>
+            ApplyTransactionHeader(ref settings, true);
+
+        partial void Modify_AllocateIdsRequest(ref AllocateIdsRequest request, ref CallSettings settings) =>
+            ApplyTransactionHeader(ref settings, false);
+
+        partial void Modify_ReserveIdsRequest(ref ReserveIdsRequest request, ref CallSettings settings) =>
+            ApplyTransactionHeader(ref settings, false);
+
+        internal static void ApplyTransactionHeader(ref CallSettings settings, bool isTransaction)
+        {
+            string value = isTransaction ? "true" : "false";
+            settings = settings.WithHeader(TransactionHeader, value);
+        }
+
+        internal static bool IsTransactionalRead(ReadOptions readOptions) =>
+            readOptions is not null && (!readOptions.Transaction.IsEmpty || readOptions.NewTransaction is not null);
     }
 
     /// <summary>
